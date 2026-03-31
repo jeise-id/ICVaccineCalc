@@ -191,6 +191,7 @@ const KNOWN_VACCINES = [
   { id: "menB", label: "Meningococcal B", group: "Non-live" },
   { id: "hib", label: "Hib", group: "Non-live" },
   { id: "hpv_complete", label: "HPV course complete", group: "Non-live" },
+  { id: "rsv", label: "RSV vaccine (Abrysvo or Arexvy)", group: "Non-live" },
   { id: "mmr2", label: "MMR \u00d72 or serologically immune", group: "Live" },
   { id: "varicella2", label: "Varicella immune (vaccine/serology/prior infection)", group: "Live" },
 ];
@@ -206,13 +207,14 @@ const state = {
   timing: "on_treatment",
   expCat: {},
   showKV: false,
+  initials: "",
 };
 
 function tog(arr, id) { return arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]; }
 
 function resetAll() {
   state.therapies = []; state.known = []; state.age = 40; state.atsi = false;
-  state.timing = "on_treatment"; state.expCat = {}; state.showKV = false;
+  state.timing = "on_treatment"; state.expCat = {}; state.showKV = false; state.initials = "";
   render();
 }
 
@@ -282,6 +284,19 @@ function getVaccines(level, age, atsi, therapies, known) {
 
   V.push({ name: "HPV (Gardasil 9)", type: "Non-live", schedule: "3 doses (0, 2, 6mo)", ci: false, nip: age <= 25, nipNote: age <= 25 ? "NIP catch-up to 25yo" : "Private >25yo", notes: "3-dose for IC patients", priority: "recommended", status: kn("hpv_complete") ? "done" : "due", statusNote: kn("hpv_complete") ? "Course complete" : "Check AIR" });
 
+  // RSV — age-dependent recommendations
+  const rsvDone = kn("rsv");
+  if (age >= 75) {
+    V.push({ name: "RSV (Abrysvo or Arexvy)", type: "Non-live", schedule: "Single dose. Ideally pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded. Limited state funding (Vic 60+ in aged care).", notes: "Recommended for all \u226575yo. Non-live protein-subunit \u2014 safe on IS. Rare GBS signal \u2014 discuss.", priority: "recommended", status: rsvDone ? "done" : "due", statusNote: rsvDone ? "Received" : "Due \u2014 recommended \u226575yo" });
+  } else if (age >= 60 && modSev) {
+    V.push({ name: "RSV (Abrysvo or Arexvy)", type: "Non-live", schedule: "Single dose. Ideally pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded. Limited state funding (Vic 60+ in aged care).", notes: "Recommended for 60\u201374yo with IC risk conditions. Non-live \u2014 safe on IS. Rare GBS signal.", priority: "recommended", status: rsvDone ? "done" : "due", statusNote: rsvDone ? "Received" : "Due \u2014 recommended (IC + \u226560yo)" });
+  } else if (age >= 60) {
+    V.push({ name: "RSV (Abrysvo or Arexvy)", type: "Non-live", schedule: "Single dose. Ideally pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded.", notes: "Can consider for 60\u201374yo without specific risk. Lower benefit than \u226575yo. Rare GBS signal.", priority: "consider", status: rsvDone ? "done" : "consider", statusNote: rsvDone ? "Received" : "Can consider \u2014 lower priority without risk conditions" });
+  } else if (age >= 50 && modSev) {
+    V.push({ name: "RSV (Arexvy only)", type: "Non-live", schedule: "Single dose. Ideally pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded. Private script.", notes: "Can consider for 50\u201359yo with IC risk conditions. Arexvy only (Abrysvo not registered 50\u201359). Non-live \u2014 safe on IS.", priority: "consider", status: rsvDone ? "done" : "consider", statusNote: rsvDone ? "Received" : "Can consider \u2014 Arexvy only for 50\u201359 with risk conditions" });
+  }
+  // <50yo: RSV not registered, not shown
+
   const mmrOk = kn("mmr2");
   V.push({ name: "MMR", type: "LIVE", schedule: modSev ? "CONTRAINDICATED on therapy" : "2 doses if non-immune", ci: modSev && !mmrOk, nip: false, nipNote: "Some state catch-up funding", notes: modSev ? (mmrOk ? "Immune \u2014 no action" : "Check measles/rubella serology \u2192 cocoon if non-immune \u2192 vaccinate post-washout") : "Can give in mild IC \u2014 specialist assessment", priority: mmrOk ? "done_live" : (modSev ? "check_serology" : "recommended"), status: mmrOk ? "done" : (modSev ? "contraindicated" : "due"), statusNote: mmrOk ? "Immune" : (modSev ? "CI \u2014 check serology, cocoon contacts" : "Check serology, give if non-immune") });
 
@@ -311,7 +326,7 @@ function handlePrint(vaccines, details, level, combo) {
   const done = vaccines.filter(v => v.status === "done");
   pw.document.write(`<!DOCTYPE html><html><head><title>Vaccination Plan</title></head><body style="font-family:'Segoe UI',system-ui,sans-serif;max-width:210mm;margin:0 auto;padding:10mm 14mm;font-size:11px;color:#1f2937">
     <div style="display:flex;justify-content:space-between;border-bottom:3px solid #1e3a5f;padding-bottom:6px;margin-bottom:10px"><div><h1 style="margin:0;font-size:16px;color:#1e3a5f">Vaccination Recommendations \u2014 Immunocompromised Patient</h1><p style="margin:2px 0 0;font-size:10px;color:#6b7280">Clinical decision support \u2014 Australian Immunisation Handbook (ATAGI)</p></div><div style="text-align:right;font-size:9px;color:#6b7280">Generated: ${today}<br>Handbook: March 2026</div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:2px">Patient</div>Age: <b>${state.age}</b> | ATSI: <b>${state.atsi?'Yes':'No'}</b> | <b>${state.timing==='pre_treatment'?'Pre-treatment':state.timing==='on_treatment'?'On treatment':'Recently ceased'}</b></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:2px">Patient</div>${state.initials ? '<b style="font-size:14px">' + state.initials + '</b> &mdash; ' : ''}Age: <b>${state.age}</b> | ATSI: <b>${state.atsi?'Yes':'No'}</b> | <b>${state.timing==='pre_treatment'?'Pre-treatment':state.timing==='on_treatment'?'On treatment':'Recently ceased'}</b></div>
     <div style="background:${level==='severe'?'#fef2f2':level==='moderate'?'#fffbeb':'#eff6ff'};border:1px solid ${LEVEL_BORDER[level]};border-radius:4px;padding:6px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:2px">Immunocompromise</div><div style="font-weight:700;color:${LEVEL_COLORS[level]};font-size:14px">${LEVEL_LABELS[level]}</div></div></div>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px;margin-bottom:8px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:3px">Therapies</div>${details.map(d=>`<div>\u2022 ${d.label} <span style="color:${LEVEL_COLORS[d.level]};font-weight:600;font-size:9px">[${LEVEL_LABELS[d.level]}]</span></div>`).join('')}</div>
     ${combo?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:6px;margin-bottom:8px;font-size:10px;color:#991b1b"><b>\u26A0</b> ${combo}</div>`:''}
@@ -351,6 +366,7 @@ function render() {
   // Demographics
   h += `<div class="sec sec-line"><div class="sec-title">Patient</div><div class="row">`;
   h += `<div><div class="lbl">Age</div><input type="number" id="age-input" value="${state.age}" min="18" max="110"></div>`;
+  h += `<div><div class="lbl">Patient Initials</div><input type="text" id="initials-input" value="${esc(state.initials)}" maxlength="10" placeholder="e.g. JDS" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px;width:80px;background:#fff;font-family:inherit;text-transform:uppercase"></div>`;
   h += `<div><div class="lbl">ATSI</div><div class="radio-group"><label><input type="radio" name="atsi" value="no" ${!state.atsi?'checked':''}> No</label><label><input type="radio" name="atsi" value="yes" ${state.atsi?'checked':''}> Yes</label></div></div>`;
   h += `<div><div class="lbl">Timing</div><select id="timing-select"><option value="pre_treatment" ${state.timing==='pre_treatment'?'selected':''}>Pre-treatment</option><option value="on_treatment" ${state.timing==='on_treatment'?'selected':''}>On treatment</option><option value="recently_ceased" ${state.timing==='recently_ceased'?'selected':''}>Recently ceased</option></select></div>`;
   h += `</div>`;
@@ -446,6 +462,8 @@ function render() {
   // Bind events
   const ageInput = document.getElementById('age-input');
   if (ageInput) ageInput.addEventListener('change', e => { state.age = parseInt(e.target.value) || 18; render(); });
+  const initialsInput = document.getElementById('initials-input');
+  if (initialsInput) initialsInput.addEventListener('input', e => { state.initials = e.target.value.toUpperCase(); });
   document.querySelectorAll('input[name="atsi"]').forEach(r => r.addEventListener('change', e => { state.atsi = e.target.value === 'yes'; render(); }));
   const timingSel = document.getElementById('timing-select');
   if (timingSel) timingSel.addEventListener('change', e => { state.timing = e.target.value; render(); });
