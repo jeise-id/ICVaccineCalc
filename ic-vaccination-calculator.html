@@ -252,14 +252,19 @@ function getVaccines(level, age, atsi, therapies, known) {
   const s2 = kn("shingrix2"), s1 = kn("shingrix1");
   V.push({ name: "Shingrix", type: "Non-live", schedule: modSev ? "2 doses, 1\u20132mo apart" : "2 doses, 2\u20136mo apart", ci: false, nip: sNIP, nipNote: sNIP ? "NIP-funded moderate/severe IC \u226518yo" : "Private script for mild IC", notes: "Non-live recombinant adjuvanted. Safe on IS.", priority: modSev ? "essential" : "recommended", status: s2 ? "done" : s1 ? "partial" : "due", statusNote: s2 ? "Course complete" : s1 ? "Dose 1 done \u2014 dose 2 due" : "Not started" });
 
-  const pNIP = modSev || needsE || hasHIV || hasSOT || hasHSCT || hasHM;
+  // Pneumococcal — NIP funded for: immunocompromising conditions (most moderate/severe therapies),
+  // asplenia, CSF leak, SOT, HSCT, HIV CD4<200, haem malignancy, eGFR<15.
+  // NOT NIP-funded: mild IC only (low-dose MTX, low-dose aza, anti-IL-17, anti-IL-23, anti-IL-12/23, dupilumab, vedolizumab, omalizumab, HCQ, sulfasalazine, leflunomide)
+  // The Handbook funds for "B/T-cell targeted therapies, some conventional IS, some biologics" — essentially moderate/severe therapies.
+  const pNIPfunded = modSev || needsE || hasHIV || hasSOT || hasHSCT || hasHM;
+  const pRecommendedOnly = !pNIPfunded && LEVEL_ORDER[level] >= 1; // mild IC — recommended but not funded
   const hasPCV = kn("pcv13") || kn("pcv20"), hasPPV1 = kn("ppv23_1"), hasPPV2 = kn("ppv23_2");
   let pSt = "due", pN = "Initiate with 13vPCV";
   if (hasPPV2) { pSt = "done"; pN = "Schedule complete"; }
   else if (hasPPV1 && hasPCV) { pSt = "partial"; pN = "PCV + 1st PPV done \u2014 2nd PPV due \u22655yr after 1st"; }
   else if (hasPCV) { pSt = "partial"; pN = "PCV done \u2014 PPV due 12mo later (2\u201312mo ok)"; }
   else if (hasPPV1) { pSt = "partial"; pN = "PPV given first \u2014 give PCV \u226512mo after PPV, then 2nd PPV \u22655yr after 1st"; }
-  V.push({ name: "Pneumococcal (PCV\u2192PPV)", type: "Non-live", schedule: "13vPCV \u2192 23vPPV at 12mo \u2192 2nd PPV \u22655yr", ci: false, nip: pNIP, nipNote: pNIP ? "NIP-funded for IC conditions" : "Private script", notes: needsE ? "HIGH PRIORITY \u2014 encapsulated organism risk" : "Check prior hx on AIR", priority: "essential", status: pSt, statusNote: pN });
+  V.push({ name: "Pneumococcal (PCV\u2192PPV)", type: "Non-live", schedule: "13vPCV \u2192 23vPPV at 12mo \u2192 2nd PPV \u22655yr", ci: false, nip: pNIPfunded, nipNote: pNIPfunded ? "NIP-funded (13vPCV + 23vPPV) for moderate/severe IC conditions." : (pRecommendedOnly ? "Recommended but NOT NIP-funded for mild IC. Private script for 13vPCV + 23vPPV." : "Recommended. Check NIP eligibility for specific condition."), notes: needsE ? "HIGH PRIORITY \u2014 encapsulated organism risk" : "Check prior hx on AIR", priority: "essential", status: pSt, statusNote: pN });
 
   const hbD = kn("hepB_complete"), hbNR = kn("hepB_nonresponder");
   V.push({ name: "Hepatitis B", type: "Non-live", schedule: "3-dose (0, 2, 6mo). Double-dose if NR.", ci: false, nip: false, nipNote: "State funding for some risk groups (ATSI, contacts, PWID)", notes: "Screen HBsAg, anti-HBc, anti-HBs. If HBsAg+ \u2192 antiviral Mx.", priority: "essential", status: hbD ? "done" : hbNR ? "action" : "due", statusNote: hbD ? "Immune (anti-HBs \u226510)" : hbNR ? "Non-responder \u2014 revaccinate (double-dose/4-dose)" : "Check serology" });

@@ -137,15 +137,23 @@ function getVaccines() {
   V.push({ name: "Influenza (IIV)", type: "Non-live", schedule: "Annual", ci: false, nip: fluNIP || atsi, nipNote: fluNIPnote, notes: "Recommended for all adults. IIV preferred. Adjuvanted (Fluad) or high-dose (Fluzone HD) preferred \u226565yo.", priority: fluNIP ? "essential" : "recommended", status: kn("influenza") ? "done" : "due", statusNote: kn("influenza") ? "Received this season" : "Due \u2014 annual" });
 
   // ── PNEUMOCOCCAL ──
+  // NIP-funded conditions: eGFR <15/dialysis, CSF leak/cochlear implant, ATSI ≥50, healthy ≥70
+  // NOT NIP-funded but recommended: chronic resp, cardiac, liver, diabetes, neuro, obesity, smoking, CKD eGFR 15-29, trisomy 21 (adults)
   const pneumoNIPHealthy = (age >= 70 && !atsi) || (age >= 50 && atsi);
-  const pneumoNIPRisk = hasPneumoRisk || has("ckd_severe");
-  const pneumoNIP = pneumoNIPHealthy || pneumoNIPRisk;
+  const pneumoNIPRiskFunded = has("ckd_severe") || has("csf_cochlear"); // Only conditions NIP-funded in adults
+  const pneumoNIP = pneumoNIPHealthy || pneumoNIPRiskFunded;
+  const pneumoRecommended = ["chronic_resp","chronic_cardiac","chronic_liver","ckd_mild","diabetes","chronic_neuro","obesity","trisomy21"].some(r => risks.includes(r)) || has("smoking");
+  const pneumoIndicated = pneumoNIP || pneumoRecommended;
   const hasPCV = kn("pcv13") || kn("pcv20"), hasPPV1 = kn("ppv23_1"), hasPPV2 = kn("ppv23_2");
 
   let pSched, pNote, pSt = "due", pStNote = "";
-  if (pneumoNIPRisk) {
+  if (pneumoNIPRiskFunded || pneumoRecommended) {
     pSched = "13vPCV \u2192 23vPPV at 12mo \u2192 2nd 23vPPV \u22655yr";
-    pNote = has("ckd_severe") ? "NIP-funded (eGFR <15/dialysis). Full 3-dose schedule." : "NIP-funded for medical risk conditions.";
+    if (pneumoNIPRiskFunded) {
+      pNote = has("ckd_severe") ? "NIP-funded (eGFR <15/dialysis). Full 3-dose schedule." : "NIP-funded (CSF leak/cochlear implant). Full 3-dose schedule.";
+    } else {
+      pNote = "Recommended but NOT NIP-funded for this condition. 13vPCV + 23vPPV available on private script.";
+    }
     if (hasPPV2) { pSt = "done"; pStNote = "Schedule complete"; }
     else if (hasPPV1 && hasPCV) { pSt = "partial"; pStNote = "PCV + 1st PPV done \u2014 2nd PPV due \u22655yr"; }
     else if (hasPCV) { pSt = "partial"; pStNote = "PCV done \u2014 PPV due 12mo later"; }
@@ -160,8 +168,8 @@ function getVaccines() {
     pNote = "Not NIP-funded. Consider if risk conditions develop.";
     pSt = "consider"; pStNote = "Not currently indicated";
   }
-  if (pneumoNIP || pneumoNIPHealthy) {
-    V.push({ name: "Pneumococcal", type: "Non-live", schedule: pSched, ci: false, nip: pneumoNIP, nipNote: pNote, notes: has("csf_cochlear") ? "CSF leak/cochlear implant \u2014 ensure full pneumococcal schedule." : "Check prior hx on AIR.", priority: "essential", status: pSt, statusNote: pStNote });
+  if (pneumoIndicated || pneumoNIPHealthy) {
+    V.push({ name: "Pneumococcal", type: "Non-live", schedule: pSched, ci: false, nip: pneumoNIP, nipNote: pNote, notes: has("csf_cochlear") ? "CSF leak/cochlear implant \u2014 ensure full pneumococcal schedule." : "Check prior hx on AIR.", priority: pneumoNIP ? "essential" : "recommended", status: pSt, statusNote: pStNote });
   }
 
   // ── SHINGRIX ──
