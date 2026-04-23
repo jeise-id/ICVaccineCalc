@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Australian Adult Vaccination Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;background:#eef2f7;color:#1e293b;line-height:1.45;font-size:13px;padding:16px}
+.wrap{max-width:1100px;margin:0 auto}
+.hdr{background:linear-gradient(135deg,#064e3b,#065f46);color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:17px;font-weight:700}.hdr-sub{font-size:11px;color:#6ee7b7;margin-top:1px}
+.body-wrap{background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding-bottom:16px}
+.sec{padding:10px 16px}.sec-line{border-bottom:1px solid #e2e8f0}
+.sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:6px;cursor:default}
+.lbl{font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:2px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+input[type="number"],input[type="text"]{padding:5px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:13px;background:#fff;font-family:inherit}
+select{padding:5px 8px;border:1px solid #cbd5e1;border-radius:5px;font-size:12px;background:#fff;cursor:pointer;font-family:inherit}
+.radio-group{display:flex;gap:10px}.radio-group label{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer}
+.btn-reset{padding:8px 20px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;font-family:inherit}
+.btn-reset:hover{background:#b91c1c}
+.btn-clear{background:#fff;border:1px solid #dc2626;border-radius:5px;padding:3px 12px;font-size:11px;cursor:pointer;color:#dc2626;font-weight:600;font-family:inherit}
+.btn-clear:hover{background:#fef2f2}
+.btn-print{padding:8px 20px;background:#064e3b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn-print:hover{background:#053f31}
+.cnt{background:#059669;color:#fff;border-radius:10px;padding:0 7px;font-size:10px;font-weight:700;margin-left:4px}
+.cnt-green{background:#16a34a}
+.rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:6px}
+.rc-item{display:flex;align-items:center;gap:5px;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:12px}
+.rc-item:hover{background:#f1f5f9}.rc-item.sel{background:#ecfdf5}
+.rc-item input{cursor:pointer;accent-color:#059669}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:6px}
+.kv-item{display:flex;align-items:center;gap:5px;padding:3px 8px;cursor:pointer;border-radius:4px;font-size:12px}
+.kv-item:hover{background:#f1f5f9}.kv-item.sel{background:#f0fdf4}
+.kv-item input{cursor:pointer;accent-color:#16a34a}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;margin-top:4px}
+.section-label-action{color:#1e40af}.section-label-done{color:#16a34a}.section-label-consider{color:#94a3b8}
+table{width:100%;border-collapse:collapse;font-size:12px}
+table.action-table th{padding:5px 7px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#334155;border-bottom:2px solid #cbd5e1;background:#e2e8f0}
+table.action-table td{padding:5px 7px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+table.done-table{opacity:.75}table.done-table td{padding:4px 7px;border-bottom:1px solid #e2e8f0}table.done-table tr{background:#f0fdf4}
+table.consider-table{opacity:.6}table.consider-table td{padding:4px 7px;border-bottom:1px solid #e2e8f0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.dot-done{background:#16a34a}.dot-partial{background:#d97706}.dot-due{background:#2563eb}.dot-consider{background:#94a3b8}.dot-action{background:#dc2626}
+.nip-yes{color:#16a34a;font-weight:700;font-size:11px}.nip-no{color:#94a3b8;font-weight:700;font-size:11px}
+.type-nonlive{color:#16a34a;font-weight:700;font-size:10px}.type-live{color:#dc2626;font-weight:700;font-size:10px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.info-box{padding:8px;border-radius:5px;font-size:11px}
+.btn-row{margin-top:12px;display:flex;justify-content:center;gap:10px}
+.disclaimer{margin-top:10px;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;font-size:9px;color:#94a3b8}
+.empty{padding:32px 16px;text-align:center;color:#94a3b8}
+.alert-box{border-radius:5px;padding:6px 10px;margin-bottom:6px;font-size:12px}
+.preg-alert{background:#fdf2f8;border:1px solid #fbcfe8;color:#9d174d;padding:5px 10px;margin-top:6px;font-size:11px;border-radius:5px}
+@media(max-width:700px){.info-grid,.rc-grid,.kv-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// RISK CONDITIONS
+// ═══════════════════════════════════════════════════════════════════════════
+const RISK_CONDITIONS = [
+  { id: "chronic_resp", label: "Chronic respiratory disease (asthma, COPD, CF, bronchiectasis)" },
+  { id: "chronic_cardiac", label: "Chronic cardiac disease (heart failure, CHD \u2014 excl. isolated HTN)" },
+  { id: "chronic_liver", label: "Chronic liver disease (incl. hepatitis C, cirrhosis)" },
+  { id: "ckd_mild", label: "Chronic kidney disease (eGFR 15\u201329)" },
+  { id: "ckd_severe", label: "Chronic kidney disease (eGFR <15 / dialysis)" },
+  { id: "diabetes", label: "Diabetes mellitus" },
+  { id: "chronic_neuro", label: "Chronic neurological condition" },
+  { id: "obesity", label: "Obesity (BMI \u226540)" },
+  { id: "smoking", label: "Current smoker" },
+  { id: "csf_cochlear", label: "CSF leak / cochlear implant" },
+  { id: "trisomy21", label: "Down syndrome (Trisomy 21)" },
+  { id: "pregnancy", label: "Currently pregnant" },
+  { id: "msm", label: "MSM / sexually active gay or bisexual men" },
+  { id: "trans_gd", label: "Transgender / gender diverse \u2014 at risk of mpox exposure" },
+  { id: "sex_worker", label: "Sex worker" },
+  { id: "pwid", label: "People who inject drugs" },
+  { id: "homeless", label: "Experiencing homelessness" },
+  { id: "hcw_mpox", label: "Healthcare worker at risk of mpox exposure" },
+  { id: "born_1966", label: "Born during or after 1966 (MMR catch-up eligibility)" },
+];
+
+const KNOWN_VACCINES = [
+  { id: "influenza", label: "Influenza (this season)" },
+  { id: "pcv13", label: "Pneumococcal 13vPCV" },
+  { id: "pcv20", label: "Pneumococcal 20vPCV" },
+  { id: "ppv23_1", label: "Pneumococcal 23vPPV \u2014 dose 1" },
+  { id: "ppv23_2", label: "Pneumococcal 23vPPV \u2014 dose 2" },
+  { id: "shingrix1", label: "Shingrix \u2014 dose 1 only" },
+  { id: "shingrix2", label: "Shingrix \u2014 course complete" },
+  { id: "rsv", label: "RSV vaccine (Arexvy or Abrysvo)" },
+  { id: "dtpa", label: "dTpa within last 10 years" },
+  { id: "dtpa_preg", label: "dTpa this pregnancy (20\u201332wk)" },
+  { id: "rsv_preg", label: "RSV (Abrysvo) this pregnancy (28\u201336wk)" },
+  { id: "mmr2", label: "MMR \u00d72 or serologically immune" },
+  { id: "varicella2", label: "Varicella immune" },
+  { id: "hepB_complete", label: "Hep B complete (anti-HBs \u226510)" },
+  { id: "hepB_nonresponder", label: "Hep B \u2014 non-responder" },
+  { id: "hepA", label: "Hepatitis A \u2014 course complete" },
+  { id: "hpv_complete", label: "HPV course complete" },
+  { id: "covid_uptodate", label: "COVID-19 up to date" },
+  { id: "mpox1", label: "JYNNEOS mpox \u2014 dose 1 only" },
+  { id: "mpox2", label: "JYNNEOS mpox \u2014 course complete" },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const state = { risks: [], known: [], age: 45, atsi: false, sex: "female", initials: "", showKV: false, showRC: true };
+
+function tog(a, id) { return a.includes(id) ? a.filter(x => x !== id) : [...a, id]; }
+function resetAll() { state.risks = []; state.known = []; state.age = 45; state.atsi = false; state.sex = "female"; state.initials = ""; state.showKV = false; state.showRC = true; render(); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VACCINE LOGIC
+// ═══════════════════════════════════════════════════════════════════════════
+function getVaccines() {
+  const { age, atsi, sex, risks, known } = state;
+  const has = r => risks.includes(r);
+  const kn = v => known.includes(v);
+  const preg = has("pregnancy");
+  const hasMedRisk = ["chronic_resp","chronic_cardiac","chronic_liver","ckd_mild","ckd_severe","diabetes","chronic_neuro","obesity","trisomy21","csf_cochlear"].some(r => risks.includes(r));
+  const hasFluRisk = hasMedRisk || has("smoking") || has("homeless") || has("pwid") || preg;
+  const hasPneumoRisk = hasMedRisk || has("smoking");
+  const hasLiverDisease = has("chronic_liver");
+  const msm = has("msm");
+  const mpoxRisk = msm || has("trans_gd") || has("sex_worker") || has("hcw_mpox");
+  const V = [];
+
+  // ── INFLUENZA ──
+  const fluNIP = age >= 65 || atsi || preg || hasFluRisk || (age >= 6/12);
+  const fluNIPnote = age >= 65 ? "NIP-funded \u226565yo" : atsi ? "NIP-funded ATSI all ages" : preg ? "NIP-funded in pregnancy" : hasFluRisk ? "NIP-funded for medical risk conditions" : "Recommended for all adults. Not NIP-funded without risk condition.";
+  V.push({ name: "Influenza (IIV)", type: "Non-live", schedule: "Annual", ci: false, nip: fluNIP || atsi, nipNote: fluNIPnote, notes: "Recommended for all adults. IIV preferred. Adjuvanted (Fluad) or high-dose (Fluzone HD) preferred \u226565yo.", priority: fluNIP ? "essential" : "recommended", status: kn("influenza") ? "done" : "due", statusNote: kn("influenza") ? "Received this season" : "Due \u2014 annual" });
+
+  // ── PNEUMOCOCCAL ──
+  const pneumoNIPHealthy = (age >= 70 && !atsi) || (age >= 50 && atsi);
+  const pneumoNIPRisk = hasPneumoRisk || has("ckd_severe");
+  const pneumoNIP = pneumoNIPHealthy || pneumoNIPRisk;
+  const hasPCV = kn("pcv13") || kn("pcv20"), hasPPV1 = kn("ppv23_1"), hasPPV2 = kn("ppv23_2");
+
+  let pSched, pNote, pSt = "due", pStNote = "";
+  if (pneumoNIPRisk) {
+    pSched = "13vPCV \u2192 23vPPV at 12mo \u2192 2nd 23vPPV \u22655yr";
+    pNote = has("ckd_severe") ? "NIP-funded (eGFR <15/dialysis). Full 3-dose schedule." : "NIP-funded for medical risk conditions.";
+    if (hasPPV2) { pSt = "done"; pStNote = "Schedule complete"; }
+    else if (hasPPV1 && hasPCV) { pSt = "partial"; pStNote = "PCV + 1st PPV done \u2014 2nd PPV due \u22655yr"; }
+    else if (hasPCV) { pSt = "partial"; pStNote = "PCV done \u2014 PPV due 12mo later"; }
+    else if (hasPPV1) { pSt = "partial"; pStNote = "PPV first \u2014 give PCV \u226512mo after, then 2nd PPV \u22655yr"; }
+    else { pStNote = "Initiate with 13vPCV"; }
+  } else if (pneumoNIPHealthy) {
+    pSched = "Single dose 13vPCV";
+    pNote = atsi ? "NIP-funded ATSI \u226550yo. Single 13vPCV. No further doses unless risk condition develops." : "NIP-funded \u226570yo. Single 13vPCV.";
+    if (hasPCV) { pSt = "done"; pStNote = "PCV received"; } else { pStNote = "Single dose 13vPCV due"; }
+  } else {
+    pSched = "Not routinely indicated <70yo without risk conditions";
+    pNote = "Not NIP-funded. Consider if risk conditions develop.";
+    pSt = "consider"; pStNote = "Not currently indicated";
+  }
+  if (pneumoNIP || pneumoNIPHealthy) {
+    V.push({ name: "Pneumococcal", type: "Non-live", schedule: pSched, ci: false, nip: pneumoNIP, nipNote: pNote, notes: has("csf_cochlear") ? "CSF leak/cochlear implant \u2014 ensure full pneumococcal schedule." : "Check prior hx on AIR.", priority: "essential", status: pSt, statusNote: pStNote });
+  }
+
+  // ── SHINGRIX ──
+  const shingNIP = (age >= 65 && !atsi) || (age >= 50 && atsi);
+  const s2 = kn("shingrix2"), s1 = kn("shingrix1");
+  if (age >= 50 || shingNIP) {
+    V.push({ name: "Shingrix (zoster)", type: "Non-live", schedule: "2 doses, 2\u20136mo apart", ci: false, nip: shingNIP, nipNote: shingNIP ? (atsi ? "NIP-funded ATSI \u226550yo" : "NIP-funded \u226565yo") : "Recommended \u226550yo. Private script (~$560 for 2 doses).", notes: "Non-live recombinant. Can co-administer with flu/COVID/pneumococcal.", priority: shingNIP ? "essential" : "recommended", status: s2 ? "done" : s1 ? "partial" : "due", statusNote: s2 ? "Course complete" : s1 ? "Dose 1 done \u2014 dose 2 due" : "Not started" });
+  }
+
+  // ── RSV ──
+  const rsvDone = kn("rsv");
+  if (preg) {
+    V.push({ name: "RSV (Abrysvo) \u2014 maternal", type: "Non-live", schedule: "Single dose, 28\u201336wk gestation", ci: false, nip: true, nipNote: "NIP-funded in pregnancy (Abrysvo only). Year-round program since Feb 2025.", notes: "Passive antibody protection for newborn. Do NOT use Arexvy in pregnancy.", priority: "essential", status: kn("rsv_preg") ? "done" : "due", statusNote: kn("rsv_preg") ? "Received this pregnancy" : "Due \u2014 give 28\u201336wk" });
+  }
+  if (age >= 75 && !preg) {
+    V.push({ name: "RSV (Arexvy)", type: "Non-live", schedule: "Single dose. Pre-RSV season (autumn).", ci: false, nip: true, nipNote: "NIP-funded from 15 May 2026 (Arexvy only). Not annual. \u22652 seasons protection.", notes: "Recommended \u226575yo. Can co-administer with flu/COVID/zoster/pneumococcal. Rare GBS signal.", priority: "recommended", status: rsvDone ? "done" : "due", statusNote: rsvDone ? "Received" : "Due \u2014 NIP-funded \u226575yo" });
+  } else if (atsi && age >= 60 && !preg) {
+    V.push({ name: "RSV (Arexvy)", type: "Non-live", schedule: "Single dose. Pre-RSV season.", ci: false, nip: true, nipNote: "NIP-funded from 15 May 2026 for ATSI \u226560yo (Arexvy only).", notes: "Recommended ATSI \u226560yo. Rare GBS signal.", priority: "recommended", status: rsvDone ? "done" : "due", statusNote: rsvDone ? "Received" : "Due \u2014 NIP-funded ATSI \u226560yo" });
+  } else if (age >= 60 && hasMedRisk && !preg) {
+    V.push({ name: "RSV (Arexvy or Abrysvo)", type: "Non-live", schedule: "Single dose. Pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded 60\u201374 non-ATSI. ~$300 private.", notes: "Recommended with medical risk conditions \u226560yo. Rare GBS signal.", priority: "recommended", status: rsvDone ? "done" : "due", statusNote: rsvDone ? "Received" : "Recommended but not NIP-funded" });
+  } else if (age >= 60 && !preg) {
+    V.push({ name: "RSV (Arexvy or Abrysvo)", type: "Non-live", schedule: "Single dose. Pre-RSV season.", ci: false, nip: false, nipNote: "Not NIP-funded.", notes: "Can consider 60\u201374yo. ~$300 private. Rare GBS signal.", priority: "consider", status: rsvDone ? "done" : "consider", statusNote: rsvDone ? "Received" : "Can consider" });
+  }
+
+  // ── dTpa ──
+  if (preg) {
+    V.push({ name: "dTpa \u2014 antenatal", type: "Non-live", schedule: "Each pregnancy, 20\u201332wk (can give up to delivery)", ci: false, nip: true, nipNote: "NIP-funded in pregnancy.", notes: "Recommended every pregnancy for passive pertussis protection of newborn.", priority: "essential", status: kn("dtpa_preg") ? "done" : "due", statusNote: kn("dtpa_preg") ? "Received this pregnancy" : "Due \u2014 give 20\u201332wk" });
+  }
+  V.push({ name: "dTpa \u2014 adult booster", type: "Non-live", schedule: "Every 10 years", ci: false, nip: false, nipNote: "Not NIP-funded for adult boosters (NIP in pregnancy only).", notes: "Recommended 10-yearly. Also for wound management if >5yr since last dose.", priority: "routine", status: kn("dtpa") ? "done" : "due", statusNote: kn("dtpa") ? "Within last 10yr" : "Check last dose" });
+
+  // ── MMR ──
+  const mmrDone = kn("mmr2");
+  const born1966 = has("born_1966") || age <= 60;
+  if (born1966) {
+    V.push({ name: "MMR", type: "Live", schedule: preg ? "CONTRAINDICATED in pregnancy \u2014 give post-partum if non-immune" : "2 documented doses or serological immunity", ci: preg, nip: false, nipNote: "NIP catch-up <20yo. Some state catch-up for adults born \u22651966.", notes: preg ? (mmrDone ? "Immune \u2014 no action." : "Check rubella serology. Vaccinate post-partum if non-immune. Do not give in pregnancy.") : "Born \u22651966: ensure 2 documented doses or serology. Especially important pre-pregnancy.", priority: mmrDone ? "done_live" : (preg ? "check_serology" : "recommended"), status: mmrDone ? "done" : (preg ? "contraindicated" : "due"), statusNote: mmrDone ? "Immune" : (preg ? "CI in pregnancy \u2014 check serology, give post-partum" : "Check documentation or serology") });
+  }
+
+  // ── VARICELLA ──
+  const vzDone = kn("varicella2");
+  V.push({ name: "Varicella", type: "Live", schedule: preg ? "CONTRAINDICATED in pregnancy" : "2 doses if non-immune", ci: preg && !vzDone, nip: false, nipNote: "Not NIP-funded for adults.", notes: preg ? (vzDone ? "Immune \u2014 no action." : "Check VZV IgG. Vaccinate post-partum. Avoid pregnancy 28 days post-vaccine.") : "Check history/serology. 2 doses if non-immune.", priority: vzDone ? "done_live" : (preg ? "check_serology" : "recommended"), status: vzDone ? "done" : (preg ? "contraindicated" : "due"), statusNote: vzDone ? "Immune" : (preg ? "CI \u2014 check VZV IgG, give post-partum" : "Check serology") });
+
+  // ── HEPATITIS B ──
+  const hbD = kn("hepB_complete"), hbNR = kn("hepB_nonresponder");
+  const hbRisk = has("pwid") || msm || hasLiverDisease || has("ckd_severe") || has("ckd_mild");
+  V.push({ name: "Hepatitis B", type: "Non-live", schedule: "3 doses (0, 1, 6mo)", ci: false, nip: false, nipNote: "NIP catch-up <20yo. State programs for ATSI, PWID, household contacts, some risk groups.", notes: hbRisk ? "Higher risk \u2014 check serology and vaccinate if non-immune." : "Screen if risk factors. Standard 3-dose course.", priority: hbRisk ? "essential" : "recommended", status: hbD ? "done" : hbNR ? "action" : "due", statusNote: hbD ? "Immune (anti-HBs \u226510)" : hbNR ? "Non-responder \u2014 revaccinate" : "Check serology" });
+
+  // ── HEPATITIS A ──
+  const hepARisk = hasLiverDisease || has("pwid") || msm || has("homeless");
+  if (hepARisk || atsi) {
+    V.push({ name: "Hepatitis A", type: "Non-live", schedule: "2 doses, 6\u201312mo apart", ci: false, nip: false, nipNote: atsi ? "NIP-funded for ATSI children in NT/QLD/SA/WA. Adult catch-up not NIP-funded." : "Not NIP-funded for adults. Private script.", notes: hasLiverDisease ? "Chronic liver disease \u2014 strongly recommended (risk of fulminant hepatitis A)." : (msm ? "MSM \u2014 recommended." : (has("pwid") ? "PWID \u2014 recommended." : "Check serology. Vaccinate if non-immune.")), priority: hasLiverDisease ? "essential" : "recommended", status: kn("hepA") ? "done" : "due", statusNote: kn("hepA") ? "Course complete" : "Check serology / vaccination history" });
+  }
+
+  // ── HPV ──
+  const hpvDone = kn("hpv_complete");
+  if (age <= 45) {
+    V.push({ name: "HPV (Gardasil 9)", type: "Non-live", schedule: age <= 25 ? "Single dose (if \u226415yo at first dose) or 3 doses" : "3 doses (0, 2, 6mo)", ci: false, nip: age <= 25, nipNote: age <= 25 ? "NIP catch-up to 25yo inclusive." : "Not NIP-funded >25yo. Private script. TGA registered to 45yo.", notes: msm ? "MSM \u2014 strongly recommended if not previously vaccinated." : "If not previously completed.", priority: (age <= 25 || msm) ? "recommended" : "consider", status: hpvDone ? "done" : "due", statusNote: hpvDone ? "Course complete" : "Check AIR" });
+  }
+
+  // ── COVID-19 ──
+  V.push({ name: "COVID-19", type: "Non-live", schedule: "Per ATAGI seasonal advice", ci: false, nip: true, nipNote: "Per seasonal ATAGI guidance.", notes: preg ? "Safe in pregnancy. Recommended." : (age >= 65 ? "Recommended annually for \u226565yo and risk conditions." : "Per ATAGI seasonal recommendations."), priority: age >= 65 || hasMedRisk || preg ? "recommended" : "consider", status: kn("covid_uptodate") ? "done" : "due", statusNote: kn("covid_uptodate") ? "Up to date" : "Check current ATAGI advice" });
+
+  // ── MPOX (JYNNEOS) ──
+  if (mpoxRisk) {
+    const m2 = kn("mpox2"), m1 = kn("mpox1");
+    V.push({ name: "Mpox (JYNNEOS)", type: "Live (non-replicating)", schedule: "2 doses, \u226528 days apart (subcutaneous)", ci: false, nip: false, nipNote: "State/territory-funded for eligible groups. Free at participating clinics. No Medicare card needed.", notes: "JYNNEOS is replication-deficient \u2014 safe in immunocompromised and pregnancy. ~85% protection after 2 doses. No booster currently recommended. Can co-administer with other vaccines.", priority: "recommended", status: m2 ? "done" : m1 ? "partial" : "due", statusNote: m2 ? "Course complete" : m1 ? "Dose 1 done \u2014 dose 2 due (\u226528 days after dose 1)" : "Not started \u2014 refer to participating clinic" });
+  }
+
+  // ── MENINGOCOCCAL (if CSF leak/cochlear) ──
+  if (has("csf_cochlear")) {
+    V.push({ name: "Meningococcal ACWY + B", type: "Non-live", schedule: "MenACWY: 2 doses 8wk apart + 5yr boosters. MenB: 2 doses \u22652mo + boosters.", ci: false, nip: true, nipNote: "NIP-funded for CSF leak / cochlear implant.", notes: "High priority for CSF leak and cochlear implant patients.", priority: "essential", status: "due", statusNote: "Check vaccination history" });
+  }
+
+  return V;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRINT
+// ═══════════════════════════════════════════════════════════════════════════
+function handlePrint(vaccines) {
+  const pw = window.open('','_blank');
+  const today = new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
+  const row = v => `<tr style="background:${v.status==='contraindicated'?'#fef2f2':v.status==='done'?'#f0fdf4':'transparent'}">
+    <td style="padding:4px 6px;border:1px solid #d1d5db;font-weight:600">${v.name}${v.ci?' <span style="color:#dc2626">\u2715</span>':''}</td>
+    <td style="padding:4px 6px;border:1px solid #d1d5db;color:${v.type.includes('Live')?'#dc2626':'#16a34a'};font-weight:700;font-size:10px">${v.type}</td>
+    <td style="padding:4px 6px;border:1px solid #d1d5db;font-weight:600;color:${v.status==='done'?'#16a34a':v.status==='contraindicated'?'#dc2626':v.status==='partial'||v.status==='action'?'#d97706':'#1e40af'}">${v.statusNote}</td>
+    <td style="padding:4px 6px;border:1px solid #d1d5db">${v.schedule}</td>
+    <td style="padding:4px 6px;border:1px solid #d1d5db">${v.nip?'<b style="color:#16a34a">Yes</b>':'No'}${v.nipNote?'<br><span style="font-size:9px;color:#6b7280">'+v.nipNote+'</span>':''}</td>
+    <td style="padding:4px 6px;border:1px solid #d1d5db;font-size:10px">${v.notes}</td></tr>`;
+  const tbl = list => !list.length?'':`<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px"><thead><tr style="background:#e2e8f0"><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px">Vaccine</th><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px;width:45px">Type</th><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px">Status</th><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px">Schedule</th><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px;width:14%">NIP</th><th style="padding:4px 6px;border:1px solid #d1d5db;text-align:left;font-size:10px">Notes</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table>`;
+  const action = vaccines.filter(v => v.status !== "done" && v.status !== "consider");
+  const done = vaccines.filter(v => v.status === "done");
+  const riskLabels = state.risks.map(r => { const rc = RISK_CONDITIONS.find(x=>x.id===r); return rc ? rc.label : r; });
+  pw.document.write(`<!DOCTYPE html><html><head><title>Vaccination Plan</title></head><body style="font-family:'Segoe UI',system-ui,sans-serif;max-width:210mm;margin:0 auto;padding:10mm 14mm;font-size:11px;color:#1f2937">
+    <div style="display:flex;justify-content:space-between;border-bottom:3px solid #064e3b;padding-bottom:6px;margin-bottom:10px"><div><h1 style="margin:0;font-size:16px;color:#064e3b">Adult Vaccination Recommendations</h1><p style="margin:2px 0 0;font-size:10px;color:#6b7280">Clinical reference \u2014 Australian Immunisation Handbook (ATAGI)</p></div><div style="text-align:right;font-size:9px;color:#6b7280">Generated: ${today}<br>Handbook: April 2026</div></div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px;margin-bottom:10px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:2px">Patient</div>${state.initials?'<b style="font-size:14px">'+state.initials+'</b> \u2014 ':''} Age: <b>${state.age}</b> | Sex: <b>${state.sex}</b> | ATSI: <b>${state.atsi?'Yes':'No'}</b>${state.risks.includes('pregnancy')?' | <b style="color:#9d174d">Pregnant</b>':''}</div>
+    ${riskLabels.length?'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:6px;margin-bottom:8px"><div style="font-size:9px;text-transform:uppercase;color:#64748b;margin-bottom:3px">Risk Conditions</div>'+riskLabels.map(l=>'<div>\u2022 '+l+'</div>').join('')+'</div>':''}
+    ${action.length?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1e40af;margin-bottom:4px">Action Required</div>'+tbl(action):''}
+    ${done.length?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#16a34a;margin-bottom:4px">Completed / Immune</div>'+tbl(done):''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0"><div style="padding:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;font-size:10px"><b>Serology to consider:</b> VZV IgG, measles/rubella IgG, anti-HBs (\u00b1 HBsAg/anti-HBc), Hep A IgG (if risk). Check AIR for vaccination history.</div><div style="padding:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:10px"><b>Household contacts:</b> Ensure up to date with routine vaccines. Important if patient is pregnant or immunocompromised.</div></div>
+    <div style="border-top:1px solid #d1d5db;padding-top:6px;font-size:8px;color:#9ca3af"><b>Disclaimer:</b> Clinical decision support. Australian Immunisation Handbook (ATAGI, April 2026). Does not replace clinical judgement. Verify NIP eligibility. For immunocompromised patients, use the IC Vaccination Calculator.</div></body></html>`);
+  pw.document.close();
+  pw.print();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function dotClass(s){return s==='done'?'dot-done':s==='partial'?'dot-partial':s==='contraindicated'||s==='action'?'dot-action':s==='consider'?'dot-consider':'dot-due'}
+
+function render() {
+  const vaccines = getVaccines();
+  const action = vaccines.filter(v => v.status !== "done" && v.status !== "consider");
+  const done = vaccines.filter(v => v.status === "done");
+  const consider = vaccines.filter(v => v.status === "consider");
+  const rcCnt = state.risks.length;
+  const kvCnt = state.known.length;
+
+  let h = '';
+  h += `<div class="hdr"><div><h1>Australian Adult Vaccination Calculator</h1><div class="hdr-sub">Australian Immunisation Handbook \u2014 ATAGI, April 2026</div></div><button class="btn-reset" onclick="resetAll()">\u27F3 Reset All</button></div>`;
+  h += `<div class="body-wrap">`;
+
+  // Demographics
+  h += `<div class="sec sec-line"><div class="sec-title">Patient Demographics</div><div class="row">`;
+  h += `<div><div class="lbl">Age</div><input type="number" id="age-input" value="${state.age}" min="18" max="110" style="width:65px"></div>`;
+  h += `<div><div class="lbl">Initials</div><input type="text" id="initials-input" value="${esc(state.initials)}" maxlength="10" placeholder="e.g. JDS" style="width:80px;text-transform:uppercase"></div>`;
+  h += `<div><div class="lbl">Sex</div><select id="sex-select"><option value="female" ${state.sex==='female'?'selected':''}>Female</option><option value="male" ${state.sex==='male'?'selected':''}>Male</option></select></div>`;
+  h += `<div><div class="lbl">ATSI</div><div class="radio-group"><label><input type="radio" name="atsi" value="no" ${!state.atsi?'checked':''}> No</label><label><input type="radio" name="atsi" value="yes" ${state.atsi?'checked':''}> Yes</label></div></div>`;
+  h += `</div>`;
+  if (state.risks.includes("pregnancy")) h += `<div class="preg-alert"><b>Pregnant:</b> Live vaccines (MMR, varicella) contraindicated. dTpa recommended 20\u201332wk. RSV (Abrysvo) recommended 28\u201336wk. Influenza recommended any trimester.</div>`;
+  h += `</div>`;
+
+  // Risk Conditions
+  h += `<div class="sec sec-line"><div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleRC()"><div class="sec-title">${state.showRC?'\u25BE':'\u25B8'} Risk Conditions & Behavioural Factors ${rcCnt>0?`<span class="cnt">${rcCnt}</span>`:''}</div>${rcCnt>0?`<button class="btn-clear" onclick="event.stopPropagation();clearRisks()">Clear</button>`:''}</div>`;
+  if (state.showRC) {
+    h += `<div class="rc-grid">`;
+    for (const rc of RISK_CONDITIONS) {
+      if (rc.id === "pregnancy" && state.sex === "male") continue;
+      const sel = state.risks.includes(rc.id);
+      h += `<div class="rc-item${sel?' sel':''}" onclick="toggleRisk('${rc.id}')"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleRisk('${rc.id}')"><span>${esc(rc.label)}</span></div>`;
+    }
+    h += `</div>`;
+  } else if (rcCnt > 0) {
+    h += `<div style="font-size:11px;color:#64748b;margin-top:3px">${state.risks.map(r=>{const rc=RISK_CONDITIONS.find(x=>x.id===r);return rc?esc(rc.label):''}).filter(Boolean).join(' \u00b7 ')}</div>`;
+  }
+  h += `</div>`;
+
+  // Known Vaccines
+  h += `<div class="sec sec-line"><div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleKVPanel()"><div class="sec-title">${state.showKV?'\u25BE':'\u25B8'} Known Vaccines / Immunity ${kvCnt>0?`<span class="cnt cnt-green">${kvCnt}</span>`:''}</div>${kvCnt>0?`<button class="btn-clear" onclick="event.stopPropagation();clearKnown()">Clear</button>`:''}</div>`;
+  if (state.showKV) {
+    h += `<div class="kv-grid">`;
+    for (const v of KNOWN_VACCINES) {
+      if ((v.id === "dtpa_preg" || v.id === "rsv_preg") && !state.risks.includes("pregnancy")) continue;
+      const sel = state.known.includes(v.id);
+      h += `<div class="kv-item${sel?' sel':''}" onclick="toggleKV('${v.id}')"><input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation();toggleKV('${v.id}')"><span>${esc(v.label)}</span></div>`;
+    }
+    h += `</div>`;
+  } else if (kvCnt > 0) {
+    h += `<div style="font-size:11px;color:#64748b;margin-top:3px">${state.known.map(k=>{const v=KNOWN_VACCINES.find(x=>x.id===k);return v?esc(v.label):''}).filter(Boolean).join(' \u00b7 ')}</div>`;
+  }
+  h += `</div>`;
+
+  // Results
+  h += `<div class="sec">`;
+
+  if (action.length > 0) {
+    h += `<div class="section-label section-label-action">Action Required (${action.length})</div>`;
+    h += `<div style="overflow-x:auto;margin-bottom:8px"><table class="action-table"><thead><tr><th>Vaccine</th><th>Type</th><th>Status</th><th>Schedule</th><th>NIP</th><th>Notes</th></tr></thead><tbody>`;
+    action.forEach(v => {
+      h += `<tr${v.status==='contraindicated'?' style="background:#fef2f2"':''}><td style="font-weight:600">${esc(v.name)}${v.ci?'<span style="color:#dc2626;font-size:10px;display:block">\u2715 CONTRAINDICATED</span>':''}</td><td class="${v.type.includes('Live')?'type-live':'type-nonlive'}">${v.type}</td><td><span class="dot ${dotClass(v.status)}"></span><span style="font-size:11px">${esc(v.statusNote)}</span></td><td style="font-size:11px">${esc(v.schedule)}</td><td class="${v.nip?'nip-yes':'nip-no'}">${v.nip?'Yes':'No'}</td><td style="font-size:11px;color:#475569">${esc(v.notes)}</td></tr>`;
+    });
+    h += `</tbody></table></div>`;
+  }
+  if (done.length > 0) {
+    h += `<div class="section-label section-label-done">Completed (${done.length})</div><div style="margin-bottom:8px"><table class="done-table"><tbody>`;
+    done.forEach(v => { h += `<tr><td style="font-weight:600">${esc(v.name)}</td><td class="${v.type.includes('Live')?'type-live':'type-nonlive'}">${v.type}</td><td><span class="dot dot-done"></span>${esc(v.statusNote)}</td></tr>`; });
+    h += `</tbody></table></div>`;
+  }
+  if (consider.length > 0) {
+    h += `<div class="section-label section-label-consider">Consider (${consider.length})</div><div style="margin-bottom:8px"><table class="consider-table"><tbody>`;
+    consider.forEach(v => { h += `<tr><td style="font-weight:600">${esc(v.name)}</td><td style="font-size:10px;color:#64748b">${esc(v.statusNote)}</td><td style="font-size:10px;color:#64748b">${esc(v.nipNote)}</td></tr>`; });
+    h += `</tbody></table></div>`;
+  }
+
+  // Info boxes
+  h += `<div class="info-grid"><div class="info-box" style="background:#f0fdf4;border:1px solid #bbf7d0"><b style="color:#166534">Serology to consider:</b> VZV IgG, measles/rubella IgG, anti-HBs (\u00b1 HBsAg/anti-HBc), Hep A IgG if risk. Check AIR.</div><div class="info-box" style="background:#eff6ff;border:1px solid #bfdbfe"><b style="color:#1e40af">Household contacts:</b> Ensure up to date with routine vaccines incl. MMR, varicella, influenza.</div></div>`;
+
+  h += `<div class="btn-row"><button class="btn-print" onclick="doPrint()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Plan</button><button class="btn-reset" onclick="resetAll()">\u27F3 Reset All</button></div>`;
+  h += `<div class="disclaimer"><b>Disclaimer:</b> Clinical decision support. Australian Immunisation Handbook (ATAGI, April 2026). Does not replace clinical judgement. Verify NIP eligibility at vaccination. For immunocompromised patients, use the IC Vaccination Calculator. Mpox vaccine availability via state/territory programs \u2014 check local clinic access.</div>`;
+  h += `</div></div>`;
+
+  document.getElementById('app').innerHTML = h;
+
+  // Bind
+  const ai = document.getElementById('age-input');
+  if (ai) ai.addEventListener('change', e => { state.age = parseInt(e.target.value) || 18; render(); });
+  const ii = document.getElementById('initials-input');
+  if (ii) ii.addEventListener('input', e => { state.initials = e.target.value.toUpperCase(); });
+  const ss = document.getElementById('sex-select');
+  if (ss) ss.addEventListener('change', e => { state.sex = e.target.value; if (e.target.value === 'male') state.risks = state.risks.filter(r => r !== 'pregnancy'); render(); });
+  document.querySelectorAll('input[name="atsi"]').forEach(r => r.addEventListener('change', e => { state.atsi = e.target.value === 'yes'; render(); }));
+}
+
+// Global handlers
+window.toggleRisk = function(id) { state.risks = tog(state.risks, id); render(); };
+window.toggleKV = function(id) { state.known = tog(state.known, id); render(); };
+window.toggleRC = function() { state.showRC = !state.showRC; render(); };
+window.toggleKVPanel = function() { state.showKV = !state.showKV; render(); };
+window.clearRisks = function() { state.risks = []; render(); };
+window.clearKnown = function() { state.known = []; render(); };
+window.doPrint = function() { handlePrint(getVaccines()); };
+
+render();
+</script>
+</body>
+</html>
