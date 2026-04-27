@@ -315,9 +315,159 @@ function getVaccines(level, age, atsi, therapies, known) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PJP PROPHYLAXIS LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+function getPJP(therapies, level) {
+  const has = t => therapies.includes(t);
+  const modSev = LEVEL_ORDER[level] >= 2;
+
+  // Count immunosuppressive agents for combination risk
+  const isAgents = [];
+  for (const cat of Object.values(THERAPY_CATEGORIES))
+    for (const [k, th] of Object.entries(cat.therapies))
+      if (therapies.includes(k) && LEVEL_ORDER[th.level] >= 1) isAgents.push(k);
+
+  const hasCorticoMod = has("predMod") || has("predHigh") || has("predPulse");
+  const hasCorticoHigh = has("predHigh") || has("predPulse");
+  const hasAntiTNF = has("antiTNF_monoclonal") || has("etanercept");
+  const hasRituximab = has("rituximab");
+  const hasAlemtuzumab = has("alemtuzumab");
+  const hasCyclophosphamide = has("cyclophosphamide");
+  const hasSOT = has("sot");
+  const hasHSCT = has("hsct");
+  const hasHIVsevere = has("hivSevere");
+  const hasHIVmod = has("hivModerate");
+  const hasHaemActive = has("haemMalignActive");
+  const hasJAK = has("jakInhibitor");
+  const hasCNI = has("calcineurin");
+  const hasMTOR = has("mtorInhibitor");
+  const hasMMFhigh = has("mmfHigh");
+
+  // Triple IS: biologic/conventional + thiopurine/MMF + steroid
+  const hasConventionalIS = has("azaLow") || has("azaHigh") || has("mercaptoLow") || has("mercaptoHigh") || has("mmfLow") || has("mmfHigh") || has("mtxLow") || has("mtxHigh");
+  const hasBiologic = hasAntiTNF || has("antiIL6") || has("abatacept") || has("natalizumab") || has("belimumab") || hasRituximab;
+  const tripleIS = (hasBiologic || hasConventionalIS) && hasCorticoMod && isAgents.length >= 3;
+
+  let indication = "not_indicated"; // not_indicated, consider, indicated
+  let reasons = [];
+  let duration = "";
+  let notes = [];
+
+  // ── INDICATED ──
+  if (hasAlemtuzumab) {
+    indication = "indicated";
+    reasons.push("Alemtuzumab \u2014 profound T-cell depletion");
+    duration = "\u22656 months post-treatment or until CD4 >200 for \u22653 months";
+  }
+  if (hasCyclophosphamide && hasCorticoMod) {
+    indication = "indicated";
+    reasons.push("Cyclophosphamide + corticosteroids");
+    duration = "For duration of therapy + \u22651 month after cessation";
+  }
+  if (hasCyclophosphamide && !hasCorticoMod) {
+    if (indication !== "indicated") { indication = "indicated"; }
+    reasons.push("Cyclophosphamide");
+    duration = duration || "For duration of therapy + \u22651 month after cessation";
+  }
+  if (hasRituximab && hasCorticoMod) {
+    indication = "indicated";
+    reasons.push("Rituximab + corticosteroids \u2014 combined B-cell and T-cell suppression");
+    duration = duration || "For duration of therapy. Consider until B-cell recovery + steroid cessation.";
+  }
+  if (hasCorticoHigh) {
+    indication = "indicated";
+    reasons.push("Prednisolone \u226520 mg/day \u2014 high-dose corticosteroid");
+    duration = duration || "For duration of high-dose therapy. Review when dose <10 mg/day.";
+  }
+  if (has("predPulse")) {
+    indication = "indicated";
+    reasons.push("Pulse IV methylprednisolone");
+    duration = duration || "During and after pulse therapy until maintenance dose <10 mg/day";
+  }
+  if (hasSOT) {
+    indication = "indicated";
+    reasons.push("Solid organ transplant");
+    duration = duration || "\u22656\u201312 months post-transplant. Many centres continue lifelong if on \u22652 IS agents.";
+  }
+  if (hasHSCT) {
+    indication = "indicated";
+    reasons.push("HSCT");
+    duration = duration || "\u22656 months post-transplant. Continue if ongoing IS or GvHD.";
+  }
+  if (hasHIVsevere) {
+    indication = "indicated";
+    reasons.push("HIV with CD4 <100");
+    duration = duration || "Until CD4 >200 for \u22653 months on ART";
+  }
+  if (hasHIVmod) {
+    indication = "indicated";
+    reasons.push("HIV with CD4 100\u2013199");
+    duration = duration || "Until CD4 >200 for \u22653 months on ART";
+  }
+  if (hasHaemActive) {
+    indication = "indicated";
+    reasons.push("Active haematological malignancy on treatment");
+    duration = duration || "For duration of chemotherapy + until immune reconstitution. Specialist-directed.";
+    notes.push("Particularly important with ALL, lymphoma (esp. purine analogues), or corticosteroid-containing regimens.");
+  }
+  if (tripleIS) {
+    indication = "indicated";
+    reasons.push("Triple immunosuppression (\u22653 agents including corticosteroid)");
+    duration = duration || "For duration of combination therapy. Review on de-escalation.";
+  }
+
+  // ── CONSIDER ──
+  if (indication !== "indicated") {
+    if (has("predMod")) {
+      indication = "consider";
+      reasons.push("Prednisolone 10\u201320 mg/day for >4 weeks \u2014 moderate-dose steroid");
+      duration = "Consider while on \u226510 mg/day";
+      notes.push("Risk increases with dose and duration. Some guidelines use \u226520 mg as threshold; others \u226516 mg for \u22658 weeks.");
+    }
+    if (hasRituximab && !hasCorticoMod) {
+      indication = "consider";
+      reasons.push("Rituximab monotherapy \u2014 B-cell depletion increases PJP risk especially if prior steroid exposure");
+      duration = duration || "Consider for 6\u201312 months post-infusion or until B-cell recovery";
+    }
+    if (hasJAK) {
+      indication = "consider";
+      reasons.push("JAK inhibitor \u2014 case reports of PJP, particularly tofacitinib");
+      duration = duration || "Consider if combined with other IS or corticosteroids";
+      notes.push("No formal guideline recommendation. Risk increases in combination regimens.");
+    }
+    if (hasAntiTNF && hasConventionalIS && !hasCorticoMod) {
+      indication = "consider";
+      reasons.push("Anti-TNF + conventional IS (dual therapy without steroid)");
+      duration = duration || "Consider while on combination therapy";
+    }
+    if (hasCNI && !hasSOT) {
+      indication = "consider";
+      reasons.push("Calcineurin inhibitor outside transplant context");
+      duration = duration || "Consider if combined with other IS";
+    }
+    if (hasMTOR && !hasSOT) {
+      indication = "consider";
+      reasons.push("mTOR inhibitor \u2014 case reports of PJP");
+      duration = duration || "Consider if combined with other IS";
+    }
+    if (hasMMFhigh && isAgents.length >= 2 && !hasCorticoMod) {
+      indication = "consider";
+      reasons.push("High-dose mycophenolate + other IS");
+      duration = duration || "Consider while on combination therapy";
+    }
+  }
+
+  if (indication === "not_indicated" && isAgents.length > 0) {
+    notes.push("Low PJP risk with current therapy. Reassess if regimen escalated or corticosteroids added.");
+  }
+
+  return { indication, reasons, duration, notes };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PRINT
 // ═══════════════════════════════════════════════════════════════════════════════
-function handlePrint(vaccines, details, level, combo) {
+function handlePrint(vaccines, details, level, combo, pjp) {
   const pw = window.open('', '_blank');
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
   const row = v => `<tr style="background:${v.status==='contraindicated'?'#fef2f2':v.status==='done'?'#f0fdf4':'transparent'}">
@@ -341,6 +491,14 @@ function handlePrint(vaccines, details, level, combo) {
     ${action.length>0?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1e40af;margin-bottom:4px">Action Required</div>'+tbl(action):''}
     ${done.length>0?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#16a34a;margin-bottom:4px">Completed</div>'+tbl(done):''}
     ${wo?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:3px">Washout Periods</div><table style="width:55%;border-collapse:collapse;font-size:10px"><thead><tr style="background:#f3f4f6"><th style="padding:3px 6px;border:1px solid #d1d5db;text-align:left">Therapy</th><th style="padding:3px 6px;border:1px solid #d1d5db;text-align:left">Washout</th></tr></thead><tbody>${wo}</tbody></table>`:''}
+    ${pjp.indication !== 'not_indicated' ? `<div style="background:${pjp.indication==='indicated'?'#fef2f2':'#fffbeb'};border:1px solid ${pjp.indication==='indicated'?'#fecaca':'#fde68a'};border-radius:4px;padding:8px;margin:8px 0;font-size:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${pjp.indication==='indicated'?'#991b1b':'#92400e'};margin-bottom:4px">\uD83D\uDEE1\uFE0F PJP Prophylaxis \u2014 ${pjp.indication==='indicated'?'INDICATED':'CONSIDER'}</div>
+      <div style="margin-bottom:4px">${pjp.reasons.map(r => '<div>\u2022 ' + r + '</div>').join('')}</div>
+      ${pjp.duration ? '<div style="margin-bottom:4px"><b>Duration:</b> ' + pjp.duration + '</div>' : ''}
+      <div><b>First-line:</b> TMP-SMX 160/800mg (DS) daily or Mon/Wed/Fri</div>
+      <div><b>Alternatives:</b> Dapsone 100mg daily (check G6PD) | Atovaquone 1500mg daily | Nebulised pentamidine 300mg monthly</div>
+      ${pjp.notes.length ? '<div style="margin-top:3px;color:#6b7280;font-style:italic">' + pjp.notes.join(' ') + '</div>' : ''}
+    </div>` : ''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0"><div style="padding:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;font-size:10px"><b>Serology:</b> VZV IgG, measles IgG, rubella IgG, anti-HBs (\u00b1 HBsAg/anti-HBc). Pneumococcal hx on AIR.</div><div style="padding:6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:10px"><b>Contacts:</b> MMR, varicella, annual influenza up to date. Live vaccines safe for contacts.</div></div>
     <div style="border-top:1px solid #d1d5db;padding-top:6px;font-size:8px;color:#9ca3af"><b>Disclaimer:</b> Clinical decision support for specialist physicians. Australian Immunisation Handbook (ATAGI, March 2026). Does not replace clinical judgement. Verify NIP at vaccination. HSCT \u2192 specialist revaccination protocol.</div></body></html>`);
   pw.document.close();
@@ -453,6 +611,36 @@ function render() {
       h += `</tbody></table></div>`;
     }
 
+    // PJP Prophylaxis
+    const pjp = getPJP(state.therapies, level);
+    if (pjp.indication === "indicated") {
+      h += `<div style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border:2px solid #fecaca;border-radius:6px;padding:12px;margin:10px 0">`;
+      h += `<div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:6px">\uD83D\uDEE1\uFE0F PJP Prophylaxis \u2014 INDICATED</div>`;
+      h += `<div style="font-size:12px;margin-bottom:6px">${pjp.reasons.map(r => '<div style="padding:1px 0">\u2022 ' + esc(r) + '</div>').join('')}</div>`;
+      if (pjp.duration) h += `<div style="font-size:12px;margin-bottom:6px"><b>Duration:</b> ${esc(pjp.duration)}</div>`;
+      h += `<div style="font-size:11px;background:#fff;border-radius:4px;padding:8px;border:1px solid #e2e8f0">`;
+      h += `<div style="font-weight:700;margin-bottom:3px">Regimen Options</div>`;
+      h += `<div><b>First-line:</b> TMP-SMX 160/800mg (DS) daily <i>or</i> Mon/Wed/Fri</div>`;
+      h += `<div><b>Alternatives:</b> Dapsone 100mg daily (check G6PD) | Atovaquone 1500mg daily | Nebulised pentamidine 300mg monthly</div>`;
+      h += `</div>`;
+      if (pjp.notes.length) h += `<div style="font-size:11px;color:#6b7280;font-style:italic;margin-top:4px">${pjp.notes.map(n => esc(n)).join(' ')}</div>`;
+      h += `</div>`;
+    } else if (pjp.indication === "consider") {
+      h += `<div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:2px solid #fde68a;border-radius:6px;padding:12px;margin:10px 0">`;
+      h += `<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:6px">\uD83D\uDEE1\uFE0F PJP Prophylaxis \u2014 CONSIDER</div>`;
+      h += `<div style="font-size:12px;margin-bottom:6px">${pjp.reasons.map(r => '<div style="padding:1px 0">\u2022 ' + esc(r) + '</div>').join('')}</div>`;
+      if (pjp.duration) h += `<div style="font-size:12px;margin-bottom:6px"><b>Duration:</b> ${esc(pjp.duration)}</div>`;
+      h += `<div style="font-size:11px;background:#fff;border-radius:4px;padding:8px;border:1px solid #e2e8f0">`;
+      h += `<div style="font-weight:700;margin-bottom:3px">If initiating prophylaxis</div>`;
+      h += `<div><b>First-line:</b> TMP-SMX 160/800mg (DS) daily <i>or</i> Mon/Wed/Fri</div>`;
+      h += `<div><b>Alternatives:</b> Dapsone 100mg daily (check G6PD) | Atovaquone 1500mg daily | Nebulised pentamidine 300mg monthly</div>`;
+      h += `</div>`;
+      if (pjp.notes.length) h += `<div style="font-size:11px;color:#6b7280;font-style:italic;margin-top:4px">${pjp.notes.map(n => esc(n)).join(' ')}</div>`;
+      h += `</div>`;
+    } else if (state.therapies.length > 0 && pjp.notes.length > 0) {
+      h += `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px;padding:8px;margin:8px 0;font-size:11px;color:#64748b"><b>\uD83D\uDEE1\uFE0F PJP Prophylaxis:</b> ${pjp.notes.map(n => esc(n)).join(' ')}</div>`;
+    }
+
     // Info
     h += `<div class="info-grid"><div class="info-sero"><b style="color:#166534">Serology:</b> VZV IgG, measles IgG, rubella IgG, anti-HBs (\u00b1 HBsAg/anti-HBc). Pneumococcal hx on AIR.</div><div class="info-contacts"><b style="color:#1e40af">Contacts:</b> MMR, varicella, annual influenza up to date. Live vaccines safe for contacts.</div></div>`;
 
@@ -487,7 +675,8 @@ window.clearKnown = function() { state.known = []; render(); };
 window.doPrint = function() {
   const { level, combo, details } = calcLevel();
   const vaccines = getVaccines(level, state.age, state.atsi, state.therapies, state.known);
-  handlePrint(vaccines, details, level, combo);
+  const pjp = getPJP(state.therapies, level);
+  handlePrint(vaccines, details, level, combo, pjp);
 };
 
 // Initial render
